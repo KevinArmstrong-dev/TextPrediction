@@ -1,76 +1,15 @@
-# Use the latest 2.1 version of CircleCI pipeline process engine.
-# See: https://circleci.com/docs/2.0/configuration-reference
-version: 2.1
 orbs:
   docker: circleci/docker@1.7.0
-# Define a job to be invoked later in a workflow.
-# See: https://circleci.com/docs/2.0/configuration-reference/#jobs
-variables:
-  # enable docker buildkit. Used with `BUILDKIT_INLINE_CACHE=1` below
-  DOCKER_BUILDKIT: 1
-  DOCKER_TLS_CERTDIR: "/certs"
-  IMAGE_TEST: $CI_REGISTRY_IMAGE/test:latest
-  IMAGE_CYPRESS: $CI_REGISTRY_IMAGE/cypress:latest
-  IMAGE_DEPLOY: $CI_REGISTRY_IMAGE/deploy:latest
 jobs:
- say-hello:
-  stages:
-    - build
-    - misc
-    - deploy
+  example-job:
+    docker:
+      # replace with your preferred image
+      - image: cimg/base:stable
+    steps:
+      - docker/build:
+          image: client 
 
-  .base:
-    image: docker:latest
-    services:
-      - docker:dind
-    before_script:
-      - docker --version
-  #     - docker login -u "$CI_REGISTRY_USER" -p "$CI_REGISTRY_PASSWORD" "$CI_REGISTRY"
-
-  build:builder:
-    extends: .base
-    stage: build
-    script:
-      - docker build --build-arg BUILDKIT_INLINE_CACHE=1 --cache-from "$IMAGE_TEST" --target builder -t "$IMAGE_TEST" .
-      - docker push "$IMAGE_TEST"
-
-  # build:deployimage:
-  #   extends: .base
-  #   stage: misc
-  #   needs: ["build:builder"]
-  #   script:
-  #     - docker build --build-arg BUILDKIT_INLINE_CACHE=1 --cache-from "$IMAGE_DEPLOY" --cache-from "$IMAGE_TEST" --cache-from "$IMAGE_CYPRESS" -t "$IMAGE_DEPLOY" .
-  #     - docker push "$IMAGE_DEPLOY"
-
-  test:cypress:
-    extends: .base
-    stage: misc
-    needs: ["build:builder"]
-    script:
-      - docker build --build-arg BUILDKIT_INLINE_CACHE=1 --cache-from "$IMAGE_CYPRESS" --cache-from "$IMAGE_TEST" --target cypress -t "$IMAGE_CYPRESS" .
-      - docker push "$IMAGE_CYPRESS"
-      - docker run "$IMAGE_CYPRESS" npm run cy:citest
-
-  test:eslint:
-    extends: .base
-    stage: misc
-    needs: ["build:builder"]
-    script:
-      - docker run "$IMAGE_TEST" npm run eslint
-
-  test:typescript:
-    extends: .base
-    stage: misc
-    needs: ["build:builder"]
-    script:
-      - docker run "$IMAGE_TEST" npm run tsc
-
-  deploy:
-    stage: deploy
-    needs: ["build:deployimage", "test:cypress", "test:eslint", "test:typescript"]
-    script:
-      - echo "deploy here"
 workflows:
-  say-hello-workflow:
+  example-workflow:
     jobs:
-      - say-hello
+      - example-job
